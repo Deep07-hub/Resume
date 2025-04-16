@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Resume {
+  id                    String   @id @default(uuid())
+  originalName          String
+  filePath              String
+  pdfPath               String?
+  extractedText         String?  @db.Text
+  name                  String?
+  email                 String?
+  phone                 String?
+  location              String?
+  title                 String?
+  summary               String?  @db.Text
+  skills                String[] @default([])
+  experience            Json[]   @default([])
+  education             String[] @default([])
+  educationDetails      Json[]   @default([])
+  certifications        String[] @default([])
+  languages             String[] @default([])
+  experienceLevel       String?  @default("Unknown")
+  totalExperience       String?  @default("Unknown")
+  status                String   @default("New")
+  matchScore            Int?
+  matchedSkills         String[] @default([])
+  missingSkills         String[] @default([])
+  experienceMatch       Int?
+  educationMatch        Int?
+  overallAssessment     String?  @db.Text
+  recommendations       String[] @default([])
+  uploadedAt            DateTime @default(now())
+  processingStartedAt   DateTime?
+  processingCompletedAt DateTime?
+  
+  @@index([status])
+  @@index([skills])
+  @@index([experienceLevel])
+}
+
+model JobDescription {
+  id                   String   @id @default(uuid())
+  title                String
+  description          String   @db.Text
+  requiredSkills       String[] @default([])
+  preferredSkills      String[] @default([])
+  experienceLevel      String?
+  educationRequirements String[] @default([])
+  department           String?
+  location             String?
+  createdAt            DateTime @default(now())
+  
+  @@index([requiredSkills])
+  @@index([experienceLevel])
+}

@@ -1,0 +1,17 @@
+{
+  "sdk": "docker",
+  "dockerfile": "Dockerfile",
+  "port": 3000,
+  "env": {
+    "HOST": "0.0.0.0",
+    "HOSTNAME": "0.0.0.0",
+    "PORT": "3000",
+    "NODE_ENV": "production"
+  },
+  "healthcheck": {
+    "url": "http://localhost:3002",
+    "interval": 10,
+    "timeout": 5,
+    "max_retries": 3
+  }
+} 

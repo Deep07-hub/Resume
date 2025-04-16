@@ -1,0 +1,10 @@
+title: resume-parser-app
+docker: true
+sdk: docker
+sdk_version: 3.0.0
+resources:
+  hardware: cpu-basic
+  memory: large
+  cpu: 2
+port: 3000
+health_endpoint: "/" 

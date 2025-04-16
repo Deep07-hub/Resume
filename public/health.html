@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Resume Parser Health Check</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .success { color: green; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <h1>Resume Parser Health Check</h1>
+  <div class="card">
+    <h2 class="success">Server is running!</h2>
+    <p>If you can see this page, the web server is working correctly.</p>
+    <p>Time now: <span id="time"></span></p>
+  </div>
+
+  <div class="card">
+    <h2>Try these URLs:</h2>
+    <ul>
+      <li><a href="/" target="_blank">Main application</a></li>
+      <li><a href="/api/health" target="_blank">API health check</a></li>
+    </ul>
+  </div>
+
+  <script>
+    document.getElementById('time').textContent = new Date().toString();
+  </script>
+</body>
+</html> 
