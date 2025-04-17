@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "version": 2,
   "buildCommand": "npm run build",
@@ -8,4 +9,18 @@
     "ENABLE_LLM": "true",
     "VERCEL": "1"
   }
+=======
+{
+  "version": 2,
+  "framework": "nextjs",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+>>>>>>> f2efbfacf922385445fe2523f265661a3683923e
 } 
