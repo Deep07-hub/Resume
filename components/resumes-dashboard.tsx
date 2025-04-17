@@ -14,6 +14,7 @@ import { ResumeDetail } from "@/components/resume-detail"
 import { Resume } from "@/types/resume"
 import { UploadIcon, AlertTriangle, Trash2, Search } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import DatabaseErrorAlert from './DatabaseErrorAlert'
 
 // Include both named and default export
 export function ResumesDashboard() {
@@ -46,9 +47,12 @@ export function ResumesDashboard() {
   const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<File[] | null>(null)
+  const [dbError, setDbError] = useState<{error: string, details?: string} | null>(null)
 
   const fetchResumes = useCallback(async () => {
     setIsLoading(true)
+    setDbError(null) // Reset any previous errors
+    
     try {
       // Build query parameters for filters
       const searchParams = new URLSearchParams();
@@ -82,32 +86,56 @@ export function ResumesDashboard() {
       const url = `/api/resumes${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
       console.log("Fetching resumes with URL:", url);
       
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error("Failed to fetch resumes")
+      const response = await fetch(url);
+      
+      // Handle specific HTTP error codes
+      if (response.status === 503) {
+        // Database connection error
+        const errorData = await response.json();
+        setDbError({
+          error: errorData.error || "Database connection error",
+          details: errorData.details
+        });
+        setResumes([]);
+        setSelectedResume(null);
+        return;
       }
-      const data = await response.json()
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch resumes");
+      }
+      
+      const data = await response.json();
       
       const resumesData = Array.isArray(data) ? data : [];
-      setResumes(resumesData)
+      setResumes(resumesData);
       
       // Update selected resume if needed
       if (resumesData.length > 0) {
         if (!selectedResume || !resumesData.some(r => r.id === selectedResume.id)) {
-          setSelectedResume(resumesData[0])
+          setSelectedResume(resumesData[0]);
         }
       } else if (selectedResume && resumesData.length === 0) {
         setSelectedResume(null);
       }
     } catch (error) {
-      console.error("Error fetching resumes:", error)
-      toast.error("Failed to load resumes", {
-        description: "Please try again later"
-      })
+      console.error("Error fetching resumes:", error);
+      
+      // Check if we already set a DB error, if not show a generic error
+      if (!dbError) {
+        toast.error("Failed to load resumes", {
+          description: error instanceof Error ? error.message : "Please try again later"
+        });
+      }
+      
+      // Clear resume data on error
+      setResumes([]);
+      setSelectedResume(null);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [selectedResume, filters, debouncedSearchQuery])
+  }, [selectedResume, filters, debouncedSearchQuery]);
 
   useEffect(() => {
     fetchResumes()
@@ -474,6 +502,14 @@ export function ResumesDashboard() {
             <div className="w-3/4 flex flex-col">
               {selectedResume ? (
                 <div className="flex flex-col h-full">
+                  {/* Add the database error alert */}
+                  {dbError && (
+                    <DatabaseErrorAlert 
+                      error={dbError.error} 
+                      details={dbError.details}
+                      onRetry={fetchResumes}
+                    />
+                  )}
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                     <div className="border-b border-gray-800 px-6 py-3 bg-gray-900 sticky top-0 z-10">
                       <TabsList className="bg-gray-800 p-1">

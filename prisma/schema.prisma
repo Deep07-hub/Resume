@@ -38,6 +38,7 @@ model Resume {
   educationMatch        Int?
   overallAssessment     String?  @db.Text
   recommendations       String[] @default([])
+  parsingMethod         String?  @default("LLM")
   uploadedAt            DateTime @default(now())
   processingStartedAt   DateTime?
   processingCompletedAt DateTime?

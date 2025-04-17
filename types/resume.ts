@@ -3,12 +3,17 @@ export interface Experience {
   company: string
   duration: string
   description: string
+  startDate?: string
+  endDate?: string
 }
 
 export interface Education {
   degree: string
   institution: string
   year: string
+  field?: string
+  startDate?: string
+  endDate?: string
 }
 
 export interface Resume {

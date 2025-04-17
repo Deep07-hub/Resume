@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from '@prisma/client'
+import { Logger } from "@/lib/logger"
 
+// Create a new Prisma client instance to ensure we're using the correct connection
 const prisma = new PrismaClient()
 
 export async function GET() {
   try {
-    console.log("Testing database connection...")
+    Logger.info("Testing Neon database connection...")
     
     // Try to connect to the database
     await prisma.$connect()
-    console.log("Database connection successful")
+    Logger.info("Neon database connection successful")
     
     // Test basic query
     const resumeCount = await prisma.resume.count()
-    console.log(`Found ${resumeCount} resumes in database`)
+    Logger.info(`Found ${resumeCount} resumes in database`)
 
     // Test simple create operation with minimal fields
     const testId = `test-${Date.now()}`
@@ -29,21 +31,28 @@ export async function GET() {
         educationMatch: 0
       }
     })
-    console.log("Created test resume:", testId)
+    Logger.info("Created test resume:", testId)
+
+    // Test reading
+    const resumes = await prisma.resume.findMany()
 
     // Clean up test data
     await prisma.resume.delete({
       where: { id: testId }
     })
-    console.log("Deleted test resume:", testId)
+    Logger.info("Deleted test resume:", testId)
 
     return NextResponse.json({
       success: true,
-      message: "Database connection and operations successful",
-      resumeCount
+      message: "Neon database connection and operations successful",
+      resumeCount,
+      testData: {
+        created: testResume,
+        allResumes: resumes
+      }
     })
   } catch (error) {
-    console.error("Error testing database:", error)
+    Logger.error("Error testing Neon database:", error)
     
     let errorDetails: string | object = "Unknown error"
     if (error instanceof Error) {

@@ -1,8 +1,37 @@
 import { PrismaClient } from "@prisma/client"
 import type { Resume, Experience, Education } from "@/types/resume"
+import { Logger } from "@/lib/logger"
 
-// Initialize Prisma client
-const prisma = new PrismaClient()
+// Initialize Prisma client with global scope for better connections in serverless
+// See: https://www.prisma.io/docs/orm/more/help-and-troubleshooting/help-articles/nextjs-prisma-client-dev-practices
+
+// PrismaClient is attached to the `global` object in development to prevent
+// exhausting your database connection limit.
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+// Parse the DATABASE_URL to ensure it's properly formatted
+const databaseUrl = process.env.DATABASE_URL
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL environment variable is not set')
+}
+
+// Create a singleton Prisma client instance
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: ['query', 'error', 'warn'],
+    datasources: {
+      db: {
+        url: databaseUrl
+      }
+    }
+  })
+}
+
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Simple in-memory cache with expiration
 class SimpleCache<T> {
@@ -158,11 +187,15 @@ export async function saveResumeToDatabase(resumeData: Resume): Promise<Resume> 
  */
 export async function getAllResumes(): Promise<Resume[]> {
   try {
-    console.log("Fetching all resumes from database")
+    Logger.info("Fetching all resumes from database")
+    
+    // Connect explicitly to ensure connection is established
+    await prisma.$connect()
+    
     const resumes = await prisma.resume.findMany({
       orderBy: { uploadedAt: "desc" },
     })
-    console.log(`Found ${resumes.length} resumes`)
+    Logger.info(`Found ${resumes.length} resumes`)
 
     return resumes.map((resume) => ({
       ...resume,
@@ -173,8 +206,15 @@ export async function getAllResumes(): Promise<Resume[]> {
       educationDetails: resume.educationDetails as unknown as Education[],
     })) as Resume[]
   } catch (error) {
-    console.error("Error fetching all resumes:", error)
+    Logger.error("Error fetching all resumes:", error)
+    // Provide more details about the error
+    if (error instanceof Error) {
+      Logger.error(`Error name: ${error.name}, message: ${error.message}`)
+    }
     throw error
+  } finally {
+    // Don't disconnect here as we're using a global client
+    // that might be reused by other functions
   }
 }
 
@@ -227,7 +267,7 @@ export async function getFilteredResumes(filters: ResumeFilters): Promise<Resume
       whereConditions.push({
         OR: [
           { originalName: { contains: filters.search, mode: 'insensitive' } },
-        { name: { contains: filters.search, mode: 'insensitive' } },
+          { name: { contains: filters.search, mode: 'insensitive' } }, 
           { email: { contains: filters.search, mode: 'insensitive' } },
           { skills: { hasSome: [filters.search] } }
         ]
@@ -448,3 +488,27 @@ export async function deleteJobDescription(id: string) {
     return false
   }
 }
+
+// Test the database connection
+export async function testDatabaseConnection() {
+  try {
+    console.log('Testing database connection...');
+    console.log('Database URL:', process.env.DATABASE_URL);
+    
+    // Try to execute a simple query
+    const result = await prisma.$queryRaw`SELECT 1`;
+    console.log('Database connection successful:', result);
+    return true;
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    return false;
+  }
+}
+
+// Test the connection when the module is loaded
+testDatabaseConnection().then(success => {
+  if (!success) {
+    console.error('Failed to connect to the database. Please check your DATABASE_URL in .env file.');
+  }
+});
+

@@ -26,3 +26,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Uploads directory - keep the directory but ignore contents
+uploads/*
+!uploads/.gitkeep
